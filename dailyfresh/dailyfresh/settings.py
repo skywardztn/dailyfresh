@@ -15,6 +15,9 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+import sys
+sys.path.insert(1, os.path.join(BASE_DIR, 'apps'))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
@@ -37,6 +40,11 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'ckeditor',
+    'ckeditor_uploader',
+    'users',
+    'goods',
+    'djcelery',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -55,7 +63,7 @@ ROOT_URLCONF = 'dailyfresh.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -76,8 +84,12 @@ WSGI_APPLICATION = 'dailyfresh.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'dailyfresh',
+        'HOST': 'localhost', # MySQL数据库地址
+        'PORT': '3306',
+        'USER': 'root',
+        'PASSWORD': '879663',
     }
 }
 
@@ -85,9 +97,9 @@ DATABASES = {
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hans'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
@@ -100,3 +112,38 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
 STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')
+]
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+CKEDITOR_UPLOAD_PATH = 'upload/'
+CKEDITOR_IMAGE_BACKEND = 'pillow'
+
+AUTH_USER_MODEL = 'users.User'
+
+# 缓存
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://localhost/5",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
+
+# Session
+# http://django-redis-chs.readthedocs.io/zh_CN/latest/#session-backend
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' # 导入邮件模块
+EMAIL_HOST = 'smtp.163.com' # 发邮件主机
+EMAIL_PORT = 25 # 发邮件端口
+EMAIL_HOST_USER = '17626961372@163.com' # 授权的邮箱
+EMAIL_HOST_PASSWORD = 'qwe1212' # 邮箱授权时获得的密码，非注册登录密码
+EMAIL_FROM = '天天生鲜<17626961372@163.com>' # 发件人抬头
