@@ -18,15 +18,16 @@
 					<form method="post" action="{% url 'users:login' %}">
                         {% csrf_token %}
 						<input type="text" name="username" class="name_input" placeholder="请输入用户名">
-						<div class="user_error" style="display: {{ tip }}">输入错误</div>
+						<div class="user_error">输入错误</div>
 						<input type="password" name="pwd" class="pass_input" placeholder="请输入密码">
-						<div class="pwd_error" style="display: {{ tip }}">输入错误</div>
+						<div class="pwd_error">输入错误</div>
 						<div class="more_input clearfix">
 							<input type="checkbox" value="1" name="remember">
 							<label>记住用户名</label>
 							<a href="#">忘记密码</a>
 						</div>
 						<input type="submit" name="" value="登录" class="input_submit">
+                        <span class="user_error1">{{ user_error }}<a href="send_active_email?em={{ to_email }}&um={{ user_name }}&tk={{ token }}">{{ link }}</a></span>
 					</form>
 				</div>
 			</div>

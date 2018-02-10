@@ -25,7 +25,8 @@ def send_active_email(request):
     user_name = request.GET.get('um')
     token = request.GET.get('tk')
     send_active_emails.delay(to_email, user_name, token)
-    return redirect(reverse('users:login'))
+    return render(request, 'apps/login.html', {'user_error': '邮件已发送,请登陆注册邮箱查看'})
+    # return redirect(reverse('users:login'), {'user_error': '邮件已发送,请登陆注册邮箱查看'})
 
 
 # 激活账户
@@ -109,21 +110,32 @@ class Longin(View):
         pwd = post['pwd']
         remember = post.get('remember', 0)
         # print(remember)
-        if username and pwd:
-            user = authenticate(username=username, password=pwd)
-            if user is not None:
-                login(request, user)
-                # 判断是否是否勾选'记住用户名'
-                if remember != '1':
-                    request.session.set_expiry(0)
-                else:
-                    request.session.set_expiry(None)
-                return redirect(reverse('users:user_center_site'))
-                # return render(request, 'user_center_site.html')
-            else:
-                return render(request, 'apps/login.html', {'tip': 'block'})
+        if not all([username, pwd]):
+            return render(request, 'apps/login.html', {'user_error': '请输入用户名和密码'})
+
+        user = authenticate(username=username, password=pwd)
+        # 判断是否存在用户
+        if user is None:
+            return render(request, 'apps/login.html', {'user_error': '用户名不存在'})
+        if user.is_active is False:
+            token = user.generate_active_token()[0]
+            user_email = user.generate_active_token()[1]
+            context = {
+                'link': '账户未激活,点击激活',
+                'to_email': user_email,
+                'user_name': username,
+                'token': token
+            }
+            return render(request, 'apps/login.html', context)
+        # return redirect(reverse('user:user_center_site'))
+        login(request, user)
+        if remember != '1':
+            # 没有勾选，不需要记住cookie信息，浏览会话结束后过期
+            request.session.set_expiry(0)
         else:
-            return render(request, 'apps/login.html', {'tip': 'block'})
+            # 已勾选，需要记住cookie信息，两周后过期
+            request.session.set_expiry(None)
+        return redirect(reverse('users:user_center_site'))
 
 
 # 登出
@@ -136,9 +148,5 @@ class Logout(View):
 
 # 用户中心
 class UserCenterSite(View):
-    def get(self, request, response):
-        print(response.status_code)
-        if response.status_code == '302':
-            return render(request, 'apps/user_center_site.html', {'none': 'none','block': 'block'})
-        else:
-            return HttpResponse('error')
+    def get(self, request):
+        return render(request, 'apps/user_center_site.html')
