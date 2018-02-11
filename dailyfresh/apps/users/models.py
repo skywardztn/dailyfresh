@@ -9,6 +9,8 @@ from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 class User(AbstractUser, BaseModel):
     class Meta:
         db_table = "df_users"
+        verbose_name = "用户"  # admin站点使用
+        verbose_name_plural = verbose_name
 
     def generate_active_token(self):
         """生成激活令牌"""
@@ -28,3 +30,5 @@ class Address(BaseModel):
 
     class Meta:
         db_table = "df_address"
+        verbose_name = "用户地址"  # admin站点使用
+        verbose_name_plural = verbose_name

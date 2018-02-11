@@ -28,7 +28,7 @@ SECRET_KEY = 'ogko58w@l^t9=gurs=1m4zh%yj^17p)a5djs+h1k%26ny-zz0p'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -127,7 +127,7 @@ AUTH_USER_MODEL = 'users.User'
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://localhost/5",
+        "LOCATION": "redis://127.0.0.1/5",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }

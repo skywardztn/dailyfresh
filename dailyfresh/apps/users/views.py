@@ -1,10 +1,13 @@
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db.backends.mysql.base import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.views.generic import View
+from django_redis import get_redis_connection
+
 from .models import *
 from django.conf import settings
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired
@@ -146,7 +149,77 @@ class Logout(View):
         return render(request, 'apps/user_center_site.html')
 
 
+class LoginRequired(View):
+  """验证用户是否登陆"""
+  @classmethod
+  def as_view(cls, **initkwargs):
+      view = super().as_view()
+      return login_required(view)
+
+
 # 用户中心
-class UserCenterSite(View):
+class UserCenterSite(LoginRequired):
     def get(self, request):
-        return render(request, 'apps/user_center_site.html')
+        user = request.user
+        try:
+            # 查询用户地址：根据创建时间排序，最近的时间在最前，取第1个地址
+            # addr = Address.objects.filter(user=user).order_by('-create_time')
+            addr = user.address_set.latest('create_time')
+        except Address.DoesNotExist:
+            addr = None
+        context = {
+            'addr': addr
+        }
+        return render(request, 'apps/user_center_site.html', context)
+
+    def post(self, request):
+        posts = request.POST
+        user = request.user
+        receiver_name = posts['receiver_name']
+        receiver_mobile = posts['receiver_mobile']
+        detail_addr = posts['detail_addr']
+        zip_code = posts['zip_code']
+        if all([receiver_name, receiver_mobile, detail_addr, zip_code]):
+            Address.objects.create(
+                user=user,
+                receiver_name=receiver_name,
+                receiver_mobile=receiver_mobile,
+                detail_addr=detail_addr,
+                zip_code=zip_code
+            )
+            return redirect(reverse('users:user_center_site'))
+
+
+class UserCenterInfo(LoginRequired):
+    def get(self, request):
+        user = request.user
+        try:
+            # 查询用户地址：根据创建时间排序，最近的时间在最前，取第1个地址
+            # addr = Address.objects.filter(user=user).order_by('-create_time')
+            addr = user.address_set.latest('create_time')
+        except Address.DoesNotExist:
+            addr = None
+        # 创建redis连接对象
+        redis_connection = get_redis_connection('default')
+        # 从Redis中获取用户浏览商品的sku_id，在redis中需要维护商品浏览顺序[8,2,5]
+        sku_ids = redis_connection.lrange('history_%s' % user.id, 0, 4)
+
+        # 从数据库中查询商品sku信息,范围在sku_ids中
+        # skuList = GoodsSKU.objects.filter(id__in=sku_ids)
+        # 问题：经过数据库查询后得到的skuList，就不再是redis中维护的顺序了,而是[2,5,8]
+        # 需求：保证经过数据库查询后，依然是[8,2,5]
+        skuList = []
+        for sku_id in sku_ids:
+            sku = GoodsSKU.objects.get(id=sku_id)
+            skuList.append(sku)
+        context = {
+            'addr': addr,
+            'skuList': skuList
+        }
+
+        return render(request, 'apps/user_center_info.html', context)
+
+
+class UserCenterOrder(LoginRequired):
+    def get(self, request):
+        return render(request, 'apps/user_center_order.html')
